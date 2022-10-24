@@ -44,8 +44,9 @@
            for char-was-put = nil
            with line-level = 0 and indent-level-index = 0 and char-display-string = nil
            do (if (= (char-after i) ?\t)
-                  (progn (cl-incf line-level tab-width)
-                         (setf char-display-string (substring shig--tab-width-string 0 tab-width)))
+                  (let ((width (- tab-width (mod line-level tab-width))))
+                    (cl-incf line-level width)
+                    (setf char-display-string (substring shig--tab-width-string 0 width)))
                 (cl-incf line-level)
                 (setf char-display-string (substring " ")))
            do (while (< (aref indent-levels indent-level-index) line-level)
