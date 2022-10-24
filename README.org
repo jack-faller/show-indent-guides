@@ -1,0 +1,9 @@
+* What Is It?
+This package provides =show-indent-guides-mode= which will render vertical bars at each level of indent. In addition to languages with a fixed indent offset such as C, it can be used in languages with arbitrary offsets such as Lisp. To avoid input lag, a longer idle delay is used in evil insert mode so that guides are not unnecessarily redrawn when characters are inserted on the end of a line. (Those not using Evil may wish to increase the value of =shig-idle-time= if they experience input lag.)
+* How to Activate?
+To render indent guides in code files:
+#+begin_src emacs-lisp
+  (add-hook 'prog-mode-hook #'show-indent-guides-mode)
+#+end_src
+* Pretty Picture
+[[./shig-sample.png]]
