@@ -122,7 +122,8 @@
 (defvar shig--idle-timer nil)
 (defun shig--dispatch ()
   (when shig--idle-timer (cancel-timer shig--idle-timer))
-  (--> (if (eq 'insert evil-state) shig-insert-idle-time shig-idle-time)
+  (--> (if (and (boundp 'evil-state) (eq 'insert evil-state))
+           shig-insert-idle-time shig-idle-time)
        (run-with-idle-timer it nil #'shig--refresh-guides)
        (setf shig--idle-timer it)))
 
@@ -130,9 +131,9 @@
 (define-minor-mode show-indent-guides-mode ""
   :lighter "sh-i-g"
   (if show-indent-guides-mode
-	  (add-hook 'post-command-hook #'shig--dispatch nil t)
-	(remove-hook 'post-command-hook #'shig--dispatch t)
-	(shig--remove-display-guides)))
+      (add-hook 'post-command-hook #'shig--dispatch nil t)
+    (remove-hook 'post-command-hook #'shig--dispatch t)
+    (shig--remove-display-guides)))
 
 (provide 'show-indent-guides)
 ;;; show-indent-guides.el ends here
