@@ -129,7 +129,7 @@
 
 ;;;###autoload
 (define-minor-mode show-indent-guides-mode ""
-  :lighter "sh-i-g"
+  :lighter " sh-i-g"
   (if show-indent-guides-mode
       (add-hook 'post-command-hook #'shig--dispatch nil t)
     (remove-hook 'post-command-hook #'shig--dispatch t)
