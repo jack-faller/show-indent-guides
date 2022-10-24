@@ -11,7 +11,14 @@
 (require 'cl-lib)
 (require 'rx)
 (require 'dash)
-(defvar shig-guide-char ?\x2502)
+(require 'text-property-search)
+(defvar shig-guide-char ?\x2502 "Character that will be used for guides.")
+(defvar shig-idle-time 0.01
+  "The duration of the idle timer for redrawing the guides after an edit.")
+(defvar shig-insert-idle-time 0.2
+  "Like SHIG-IDLE-TIME, but used in evil insert state.")
+(defvar-local shig-regular-offset nil
+  "Save time rendering by assuming that guides are all this many columns apart.")
 (defface shig-guide-face '((t . (:foreground "dim grey"))) "face for indent guides")
 
 (defvar shig--tab-width-string (concat (cl-loop repeat 30 collect ?\s)))
@@ -112,9 +119,6 @@
              (setf blank-lines '()))
            (setf (point) (match-end 0))))))))
 
-(defvar shig-idle-time 0.01)
-(defvar shig-insert-idle-time 0.2)
-(defvar-local shig-regular-offset nil)
 (defvar shig--idle-timer nil)
 (defun shig--dispatch ()
   (when shig--idle-timer (cancel-timer shig--idle-timer))
