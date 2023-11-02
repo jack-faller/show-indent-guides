@@ -12,7 +12,8 @@
 (require 'rx)
 (require 'dash)
 (require 'text-property-search)
-(defvar shig-guide-char ?\x2502 "Character that will be used for guides.")
+(defvar shig-guide-char nil "Character that will be used for guides.")
+(defvar shig-guide-chars [?┃ ?│] "When shig-guide-char is nil, cycle through the characters in this vector.")
 (defvar shig-idle-time 0.01
   "The duration of the idle timer for redrawing the guides after an edit.")
 (defvar shig-insert-idle-time 0.2
@@ -23,6 +24,14 @@
 
 (defvar shig--tab-width-string (concat (cl-loop repeat 30 collect ?\s)))
 (add-to-list 'text-property-default-nonsticky (cons 'indent-guide t))
+
+(let (count)
+  (defun shig--guide-char-bol () (setf count 0))
+  (defun shig--guide-char-next ()
+	(or shig-guide-char
+		(prog1
+			(aref shig-guide-chars (% count (length shig-guide-chars)))
+		  (cl-incf count)))))
 
 (defun shig--put-line-end-guide (n str)
   (unless (< n (window-start))
@@ -47,6 +56,7 @@
          '(display face indnet-guide))))))
 
 (defun shig--inscribe-line (beg end indent-levels &optional extra)
+  (shig--guide-char-bol)
   (cl-loop for i from beg below end
            for char-was-put = nil
            with line-level = 0 and indent-level-index = 0 and char-display-string = nil
@@ -61,7 +71,7 @@
                 (aset char-display-string
                       (- (length char-display-string)
                          (- line-level (aref indent-levels indent-level-index)))
-                      shig-guide-char)
+                      (shig--guide-char-next))
                 (cl-incf indent-level-index))
            when char-was-put do (shig--put-char-guide i char-display-string)
            finally
@@ -73,7 +83,7 @@
                         until (> depth extra)
                         collect (if (< j depth) ?\s
                                   (cl-incf indent-level-index)
-                                  shig-guide-char)
+                                  (shig--guide-char-next))
                         into str
                         do (cl-incf i)
                         finally (shig--put-line-end-guide end (concat str))))
