@@ -19,7 +19,14 @@
 (defvar shig-insert-idle-time 0.2
   "Like SHIG-IDLE-TIME, but used in evil insert state.")
 (defvar-local shig-regular-offset nil
-  "Save time rendering by assuming that guides are all this many columns apart.")
+  "Save time rendering by assuming that guides are all this many columns apart.
+Visible lines remain rendered dynamically.
+Lines before the start of the screen will not contribute to indent levels.
+Using large number is the same as not rendering guides that start offscreen.
+
+This can save time as it avoids the need to scan back to the first unindented
+line and calculate indent levels starting there. Instead, only on-screen text
+contributes to guide placement.")
 (defface shig-guide-face '((t . (:foreground "dim grey"))) "face for indent guides")
 
 (defvar shig--tab-width-string (concat (cl-loop repeat 30 collect ?\s)))
