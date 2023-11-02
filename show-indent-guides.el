@@ -122,7 +122,7 @@ contributes to guide placement.")
              (dotimes (i (length indent-levels))
                (aset indent-levels i (* shig-regular-offset (+ i 1))))
              (shig--inscribe-line beg end indent-levels)))
-         (while (and (re-search-forward (rx (group bol (* space)) (group (not space))) nil t)
+         (while (and (re-search-forward (rx (group bol (*? space)) (group (or (not space) "\n"))) nil t)
                      (< (point) end))
            (if (string= "\n" (match-string 2)) ;; blank line
                (push (cons (match-beginning 1) (match-end 1))
