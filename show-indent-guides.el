@@ -30,7 +30,6 @@ contributes to guide placement.")
 (defface shig-guide-face '((t . (:foreground "dim grey"))) "face for indent guides")
 
 (defvar shig--overlays nil)
-(defvar shig--tab-width-string (concat (cl-loop repeat 30 collect ?\s)))
 (add-to-list 'text-property-default-nonsticky (cons 'indent-guide t))
 
 (let (count)
@@ -70,21 +69,22 @@ contributes to guide placement.")
   (shig--guide-char-bol)
   (cl-loop for i from beg below end
            for char-was-put = nil
-           with line-level = 0 and indent-level-index = 0 and char-display-string = nil
+           with line-level = 0 and indent-level-index = 0 and display-vector = nil
            do (if (= (char-after i) ?\t)
                   (let ((width (- tab-width (mod line-level tab-width))))
                     (cl-incf line-level width)
-                    (setf char-display-string (substring shig--tab-width-string 0 width)))
+                    (setf display-vector (make-vector width ? )))
                 (cl-incf line-level)
-                (setf char-display-string (substring " ")))
+                (concat [?1])
+                (setf display-vector [? ]))
            do (while (< (aref indent-levels indent-level-index) line-level)
                 (setf char-was-put t)
-                (aset char-display-string
-                      (- (length char-display-string)
+                (aset display-vector
+                      (- (length display-vector)
                          (- line-level (aref indent-levels indent-level-index)))
                       (shig--guide-char-next))
                 (cl-incf indent-level-index))
-           when char-was-put do (shig--put-char-guide i char-display-string)
+           when char-was-put do (shig--put-char-guide i (concat display-vector))
            finally
            (progn
              (cond
