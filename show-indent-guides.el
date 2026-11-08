@@ -12,8 +12,7 @@
 (require 'rx)
 (require 'dash)
 (require 'text-property-search)
-(defvar shig-guide-char nil "Character that will be used for guides.")
-(defvar shig-guide-chars [?┃ ?│] "When shig-guide-char is nil, cycle through the characters in this vector.")
+(defvar shig-guide-chars [?┃ ?│] "Cycle through this vector for the guide characters.")
 (defvar shig-idle-time 0.01
   "The duration of the idle timer for redrawing the guides after an edit.")
 (defvar shig-insert-idle-time 0.2
@@ -35,19 +34,19 @@ contributes to guide placement.")
 (let (count)
   (defun shig--guide-char-bol () (setf count 0))
   (defun shig--guide-char-next ()
-	(or shig-guide-char
-		(prog1
-			(aref shig-guide-chars (% count (length shig-guide-chars)))
-		  (cl-incf count)))))
+    (prog1 (aref shig-guide-chars (% count (length shig-guide-chars)))
+      (cl-incf count))))
 
 (defun shig--put-line-end-guide (n str)
   (unless (< n (window-start))
     (put-text-property 0 (length str) 'face 'shig-guide-face str)
-	(let ((ov (make-overlay n n)))
-	  (push ov shig--overlays)
-	  (overlay-put ov 'insert-behind-hooks (list (lambda (&rest _)
-												   (delete-overlay ov))))
-	  (overlay-put ov 'before-string str))))
+    (let ((ov (make-overlay n n)))
+      (push ov shig--overlays)
+
+      (overlay-put ov 'insert-behind-hooks (list (lambda (&rest _)
+                                                   (delete-overlay ov))))
+      (overlay-put ov 'before-string (propertize str 'cursor 1)))))
+
 (defun shig--put-char-guide (n str)
   (unless (< n (window-start))
     (put-text-property 0 (length str) 'face 'shig-guide-face str)
@@ -75,7 +74,6 @@ contributes to guide placement.")
                     (cl-incf line-level width)
                     (setf display-vector (make-vector width ? )))
                 (cl-incf line-level)
-                (concat [?1])
                 (setf display-vector [? ]))
            do (while (< (aref indent-levels indent-level-index) line-level)
                 (setf char-was-put t)
@@ -110,35 +108,39 @@ contributes to guide placement.")
         (indent-levels (make-vector 80 999))
         (indent-levels-copy (make-vector 80 999))
         blank-lines prev-length)
-   (with-silent-modifications
-     (shig--remove-display-guides)
-     (save-excursion
-       (save-match-data
-         (setf (point) end
-               (point) (line-end-position)
-               end (progn (re-search-forward (rx (not (any space ?\n))) nil t) (point))
-               (point) (window-start))
-         (if (not shig-regular-offset)
-             (re-search-backward (rx bol (not (any space ?\n))) nil t)
-           (re-search-backward (rx bol (* space) (group (not (any space ?\n)))) nil t)
-           (let ((beg (or (match-beginning 0) (point-min)))
-                 (end (or (match-beginning 1) (+ (point-min) 1))))
-             (dotimes (i (length indent-levels))
-               (aset indent-levels i (* shig-regular-offset (+ i 1))))
-             (shig--inscribe-line beg end indent-levels)))
-         (while (and (re-search-forward (rx (group bol (*? space)) (group (or (not space) "\n"))) nil t)
-                     (< (point) end))
-           (if (string= "\n" (match-string 2)) ;; blank line
-               (push (cons (match-beginning 1) (match-end 1))
-                     blank-lines)
-             (cl-loop for i across indent-levels and j from 0
-                      do (aset indent-levels-copy j i)
-                      until (= i 999))
-             (setf prev-length (shig--inscribe-line (match-beginning 1) (match-end 1) indent-levels))
-             (mapc (lambda (args) (shig--inscribe-line (car args) (cdr args) indent-levels-copy prev-length))
-                   blank-lines)
-             (setf blank-lines '()))
-           (setf (point) (match-end 0))))))))
+    (with-silent-modifications
+      (shig--remove-display-guides)
+      (save-excursion
+        (save-match-data
+          (setf (point) end
+                (point) (line-end-position)
+                end (progn (re-search-forward (rx (not (any space ?\n))) nil t) (point))
+                (point) (window-start))
+          (if (not shig-regular-offset)
+              (re-search-backward (rx bol (not (any space ?\n))) nil t)
+            (re-search-backward (rx bol (* space) (group (not (any space ?\n)))) nil t)
+            (let ((beg (or (match-beginning 0) (point-min)))
+                  (end (or (match-beginning 1) (+ (point-min) 1))))
+              (dotimes (i (length indent-levels))
+                (aset indent-levels i (* shig-regular-offset (+ i 1))))
+              (shig--inscribe-line beg end indent-levels)))
+          (while (and (re-search-forward (rx (group bol (*? space)) (group (or (not space) "\n"))) nil t)
+                      (< (point) end))
+            (if (string= "\n" (match-string 2)) ;; blank line
+                (push (cons (match-beginning 1) (match-end 1))
+                      blank-lines)
+              (when blank-lines
+                (cl-loop for i across indent-levels and j from 0
+                         do (aset indent-levels-copy j i)
+                         until (= i 999)))
+              (setf prev-length (shig--inscribe-line (match-beginning 1) (match-end 1) indent-levels))
+              (mapc
+               (lambda (args)
+                 (let ((beg (car args)) (end (cdr args)) (extra prev-length))
+                   (shig--inscribe-line (car args) (cdr args) indent-levels-copy extra)))
+               blank-lines)
+              (setf blank-lines '()))
+            (setf (point) (match-end 0))))))))
 
 (defvar shig--idle-timer nil)
 (defun shig--dispatch ()
